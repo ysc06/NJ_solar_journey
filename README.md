@@ -1,0 +1,1 @@
+# NJ_solar_journey
