@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>New Jersey Solar Story</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://unpkg.com/d3-svg-annotation"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 40px;
+    }
+    #chart {
+      width: 900px;
+      height: 500px;
+    }
+    #nav {
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
+    #nav button {
+      margin-right: 8px;
+      padding: 6px 14px;
+      font-size: 16px;
+      background: steelblue;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s ease-in-out;
+    }
+    #nav button:hover {
+      background: #1f5f9c;
+    }
+    #sceneDescription {
+      max-width: 800px;
+      font-size: 16px;
+      line-height: 1.6;
+      margin-top: 10px;
+      margin-bottom: 8px;
+      color: #222;
+    }
+    #sceneRanking {
+      max-width: 800px;
+      font-size: 20px;
+      line-height: 1.5;
+      margin-bottom: 20px;
+      font-style: italic;
+      color: #0e8f10;
+      border-left: 3px solid #ccc;
+      padding-left: 10px;
+    }
+    #timelineNav button.active {
+      background-color: steelblue;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+    .overachievement {
+      cursor: pointer;
+    }
+    .pinned-tooltip {
+      position: absolute;
+      pointer-events: auto;
+      z-index: 1000;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 6px 12px;
+      font-size: 14px;
+    }
+    .pinned-tooltip .close-btn {
+      margin-top: 5px;
+      font-size: 12px;
+      background: none;
+      border: none;
+      color: red;
+      cursor: pointer;
+    }
+    #commentTooltip {
+    width: 260px;
+    position: absolute;
+    left: 950px; /* adjust for placement */
+    top: 150px;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 14px;
+    line-height: 1.4;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    z-index: 1000;
+  }
+  #commentTooltip .close-btn {
+    margin-top: 6px;
+    font-size: 12px;
+    background: none;
+    border: none;
+    color: red;
+    cursor: pointer;
+  }
+
+  </style>
+</head>
+<body>
+  <h1>How Far Has New Jersey Come on Its Solar Journey — and What’s Next?</h1>
+  <h2 id="sceneTitle" style="margin-top: -5px;"></h2>
+  <p id="sceneRanking" style="max-width: 800px; font-size:20px; line-height: 1.4; color: #10ae42;"></p>
+  <div id="timelineNav"></div>
+  <div id="timeNav"></div>
+  <svg id="chart" width="900" height="500"></svg>
+
+  <div id="nav">
+    <button id="prevBtn">⏮️ Previous</button>
+    <button id="nextBtn">⏭️ Next</button>
+  </div>
+  <div id="commentControl" style="margin-top: 15px;">
+  
+  <button id="toggleComment">💬 Show Expert Comment</button></div>
+
+  <div id="commentTooltip" class="pinned-tooltip" style="display:none;">
+    <span id="commentText"></span>
+    <br>
+    <button class="close-btn">✖ Close</button></div>
+
+  <script>
+    const scenes = [
+    { yearStart:2001, yearEnd:2003, 
+      annotation:"🌱 NJ Clean Energy Program (2001–2003)",
+      description:"NJ quietly planted the seeds of solar, offering rebates covering 50–70% of costs.",
+      ranking:"2001–2003: NJ broke into the U.S. Top 10 in solar adoption.",
+      expertComment:"💬 Expert Insight: Big achievement — NJ’s first real push into solar. Capacity surged from 23 kW to 1,700 kW (≈72% growth). The progress slightly exceeded NJ’s projected goal. Though small in scale, it beat early expectations and laid the foundation."
+    },
+    { yearStart:2004, yearEnd:2010, 
+      annotation:"🌱 SREC Program Launch (2004–2010)",
+      description:"The Solar Renewable Energy Credit (SREC) system changed the game.",
+      ranking:"By 2010, NJ had climbed to #4 in the nation — a clean‑energy leader.",
+      expertComment: "💬 Expert Insight: Explosive growth! From 4,200 kW in 2004 to nearly 252,000 kW in 2010 — a 59.3% increase in four years. High growth driven by SREC earnings made NJ a national leader starting in this period, and it maintained a Top‑4 solar ranking in the U.S. through 2015."
+    },
+    { yearStart:2011, yearEnd:2017, 
+      annotation:"🌱 Solar Act Stability (2012–2017)",
+      description:"The Solar Act capped growth to stabilize incentives and protect SREC prices.",
+      ranking:"2011–2015: NJ held steady at #4, behind CA, AZ, and NC.",
+      expertComment:"💬 Expert Insight: A turning point. NJ exceeded its projected goals from 2012 to 2015, but growth slowed afterward. Capacity rose steadily, prioritizing stability over rapid expansion. This kept NJ’s solar industry healthy but less dynamic."
+    },
+    { yearStart:2018, yearEnd:2020, 
+      annotation:"🌱 Successor Incentive Program (2018–2020)",
+      description:"NJ shifted to fixed incentives for predictable long‑term returns.",
+      ranking:"2018–2020: NJ ranked ~10th nationally; rooftop solar kept it in the Top 6.",
+      expertComment:"💬 Expert Insight: Momentum slowed. Growth peaked at 3,196,995 kW in 2019, but slowed by 2020. Overall, growth generally met projected goals. Predictability came at the cost of acceleration."
+    },
+    {
+      yearStart: 2023,
+      yearEnd: 2035,
+      annotation: "📍 Energy Master Plan: 17 GW by 2035",
+      description: "Governor Murphy’s EO 315 commits NJ to 100% clean electricity by 2035.",
+      ranking: "2023: NJ ranked 12th in total solar and 7th in rooftop installations.",
+      expertComment: "💬 Expert Insight: In 2023, NJ fell out of the Top 10 for the first time since 2000. To regain leadership, the state set an ambitious goal: expand from 4.4 GW to 17 GW by 2035, requiring a ten‑fold acceleration (≈1.05 GW per year). Bright spots include a strong clean‑energy job market and investment ecosystem, with 5.5 GW installed and nearly 7,000 solar jobs. Yet risks loom: potential federal subsidy rollbacks and policy uncertainty, as repeal of key IRA tax incentives could reduce projects by ~17%."
+    }
+
+    ];
+    let currentScene = 0;
+    
+
+    const svg = d3.select("#chart");
+    const margin = { top: 20, right: 30, bottom: 50, left: 90 };
+    const width = 900 - margin.left - margin.right;
+    const height = 500 - margin.top - margin.bottom;
+    const chartGroup = svg.append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+    const annotationGroup = chartGroup.append("g").attr("class", "annotations");
+    const avgData = [
+      { year: 2000, capacity: 22000 },
+      { year: 2001, capacity: 30000 },
+      { year: 2002, capacity: 36000 },
+      { year: 2003, capacity: 48000 },
+      { year: 2004, capacity: 68000 },
+      { year: 2005, capacity: 100000 },
+      { year: 2006, capacity: 130000 },
+      { year: 2007, capacity: 180000 },
+      { year: 2008, capacity: 306000 },
+      { year: 2009, capacity: 472000 },
+      { year: 2010, capacity: 832000 },
+      { year: 2011, capacity: 1478000 },
+      { year: 2012, capacity: 2084000 },
+      { year: 2013, capacity: 2828000 },
+      { year: 2014, capacity: 3616000 },
+      { year: 2015, capacity: 4582000 },
+      { year: 2016, capacity: 6024000 },
+      { year: 2017, capacity: 7926000 },
+      { year: 2018, capacity: 9852000 },
+      { year: 2019, capacity: 11910000 },
+      { year: 2020, capacity: 14568000 },
+      { year: 2021, capacity: 17478000 },
+      { year: 2022, capacity: 21462000 },
+      { year: 2023, capacity: 27800000 },
+      { year: 2024, capacity: 27800000 },
+ 
+    ];
+
+
+    const goalData = [
+      { year: 2000, capacity: 500 },
+      { year: 2001, capacity: 1000 },
+      { year: 2002, capacity: 1500 },
+      { year: 2003, capacity: 2000 },
+      { year: 2004, capacity: 3000 },
+      { year: 2005, capacity: 4000 },
+      { year: 2006, capacity: 5000 },
+      { year: 2007, capacity: 6000 },
+      { year: 2008, capacity: 96250 },
+      { year: 2009, capacity: 186500 },
+      { year: 2010, capacity: 276750 },
+      { year: 2011, capacity: 367000 },
+      { year: 2012, capacity: 368000 },
+      { year: 2013, capacity: 791126.336 },
+      { year: 2014, capacity: 1214252.672 },
+      { year: 2015, capacity: 1637379.008 },
+      { year: 2016, capacity: 2060505.344 },
+      { year: 2017, capacity: 2412228.929 },
+      { year: 2018, capacity: 2743925.369 },
+      { year: 2019, capacity: 3196995.389 },
+      { year: 2020, capacity: 3517956.799 },
+      { year: 2021, capacity: 3811296.8192 },
+      { year: 2022, capacity: 4104636.8394 },
+      { year: 2023, capacity: 4397976.8596 },
+      { year: 2035, capacity: 17000000 }
+    ];
+
+ 
+
+
+    const sceneTitle = d3.select("#sceneTitle");
+    
+    Promise.all([
+      d3.csv("data/nj_solar_capacity_cumulation.csv"),
+      d3.csv("data/nj_solar_capacity_by_year.csv")
+    ]).then(([cumData, annualData]) => {
+      cumData.forEach(d => {
+        d.year = Number(d.Year);
+        d.capacity = Number(d["Cumulative_KW"]);
+      });
+      annualData.forEach(d => {
+        d.year = Number((d.Year || "").trim());
+        d.capacity = Number((d["Capacity_KW"] || "").trim());
+      });
+
+      cumData.sort((a, b) => a.year - b.year);
+      annualData.sort((a, b) => a.year - b.year);
+
+      const actualPath = chartGroup.append("path")
+        .attr("fill", "none")
+        .attr("stroke", "steelblue")
+        .attr("stroke-width", 5);
+      const goalPath = chartGroup.append("path")
+        .attr("fill", "none")
+        .attr("stroke", "gray")
+        .attr("stroke-dasharray", "4,4")
+        .attr("stroke-width", 2)
+        .style("opacity", 0.6);
+      
+
+      let cumulativeData = [];
+
+      function showScene(index) {
+        
+        d3.selectAll(".time-btn")
+          .classed("active",(d,i)=> i===index);
+
+        svg.selectAll(".legend").remove();
+        // Legend group on the right side
+        const legend = svg.append("g")
+          .attr("class", "legend")
+          .attr("transform", `translate(${width - margin.left-20}, ${margin.top})`);
+
+        // Legend items
+        const legendItems = [
+          { color: "steelblue", text: "NJ Installations" },
+          { color: "gray", text: "NJ's published goals", dash: "4,4" }
+        ];
+
+        // Draw each legend item
+        const item = legend.selectAll(".legend-item")
+          .data(legendItems)
+          .enter()
+          .append("g")
+          .attr("class", "legend-item")
+          .attr("transform", (d, i) => `translate(0, ${i * 25})`);
+
+        item.append("line")
+          .attr("x1", 0)
+          .attr("x2", 30)
+          .attr("y1", 0)
+          .attr("y2", 0)
+          .attr("stroke", d => d.color)
+          .attr("stroke-width", 3)
+          .attr("stroke-dasharray", d => d.dash || null);
+
+        item.append("text")
+          .attr("x", 40)
+          .attr("y", 5)
+          .attr("fill", "#333")
+          .attr("font-size", "14px")
+          .text(d => d.text);
+
+
+        chartGroup.selectAll(".overachievement").remove();
+        d3.selectAll(".pinned-tooltip").remove();
+        d3.select("#tooltip").style("opacity", 0);
+        d3.selectAll("#timelineNav button").classed("active", (d, i) => i === index);
+
+        function goalAtYear(year) {
+          const before = goalData.filter(d => d.year <= year).slice(-1)[0];
+          const after  = goalData.find(d => d.year > year);
+          if (!before || !after) return before ? before.capacity : null;
+
+          // Linear interpolation
+          const t = (year - before.year) / (after.year - before.year);
+          return before.capacity + t * (after.capacity - before.capacity);
+        }
+
+        annotationGroup.selectAll("*").remove();
+        const { yearStart, yearEnd, annotation, description, ranking, extraNotes } = scenes[index];
+        sceneTitle.text(annotation);
+        d3.select("#sceneRanking").text(ranking || "");
+
+        if (scenes[index].extraNotes) {
+          const fixedWidth = 300;
+          const padding = 12;
+
+          const notesGroup = annotationGroup.append("g")
+            .attr("class", "extra-notes")
+            .attr("transform", `translate(${width - fixedWidth - 60}, ${50})`); // top-right of chart
+
+          const textEl = notesGroup.append("text")
+            .attr("x", padding)
+            .attr("y", padding + 15)
+            .attr("fill", "black")
+            .attr("font-size", "13px")
+            .attr("font-weight", "normal")
+            .text(scenes[index].extraNotes);
+
+          wrapText(textEl, fixedWidth - 2 * padding);
+
+          const bbox = textEl.node().getBBox();
+
+          notesGroup.insert("rect", "text")
+            .attr("width", fixedWidth)
+            .attr("height", bbox.height + padding * 1.2)
+            .attr("fill", "#eef9ff")
+            .attr("stroke", "#999")
+            .attr("rx", 8)
+            .attr("ry", 8)
+            .attr("x", 0)
+            .attr("y", bbox.y - padding / 2);
+        }
+
+
+        chartGroup.selectAll("circle.data-point").remove();
+
+
+        cumulativeData = cumData.filter(d => d.year <= yearEnd);
+        const startData = cumulativeData.find(d => d.year === yearStart);
+        const endData   = cumulativeData.find(d => d.year === yearEnd);
+        
+        let growthRate = null;
+        if (startData && endData && startData.capacity > 0) {
+          growthRate = ((endData.capacity - startData.capacity) / startData.capacity);
+        }
+
+        // Define scales FIRST
+      const yMax = (index === scenes.length - 1) ? 17500000 : 3500000;
+      const xScale = d3.scaleLinear().domain([yearStart, yearEnd]).range([0, width]);
+      const yScale = d3.scaleLinear().domain([0, yMax]).range([height, 0]);
+
+      // Remove old axes and redraw
+      chartGroup.selectAll(".axis").remove();
+      chartGroup.append("g")
+        .attr("class", "axis x-axis")
+        .attr("transform", `translate(0, ${height})`)
+        .call(d3.axisBottom(xScale).ticks(yearEnd - yearStart).tickFormat(d3.format("d")));
+      // X-Axis Label
+      // Remove old axes and axis labels
+  
+      chartGroup.selectAll(".x-label, .y-label").remove();
+
+      chartGroup.append("text")
+        .attr("class", "x-label")
+        .attr("x", width / 2)
+        .attr("y", height + 40) // distance below the axis
+        .attr("fill", "black")
+        .attr("text-anchor", "middle")
+        .text("Year");
+      chartGroup.append("g")
+        .attr("class", "axis y-axis")
+        .call(d3.axisLeft(yScale));
+      
+      // Y-Axis Label
+      chartGroup.append("text")
+        .attr("class", "y-label")
+        .attr("transform", "rotate(-90)")
+        .attr("x", -height / 2)
+        .attr("y", -70) // adjust spacing
+        .attr("fill", "black")
+        .attr("text-anchor", "middle")
+        .text("NJ Solar Installation Capacity (kW)");
+
+      // ⚡ Define the line generator with the NEW scales
+      const goalLine = d3.line()
+        .x(d => xScale(d.year))
+        .y(d => yScale(d.capacity));
+
+      // ⚡ Filter goalData to scene years
+      const goalSceneData = goalData.filter(d => d.year <= yearEnd);
+
+
+      // ⚡ Update the goalPath
+      goalPath
+        .datum(goalSceneData)
+        .attr("d", goalLine)
+        .attr("stroke", "gray")
+        .attr("stroke-dasharray", "4,4")
+        .attr("stroke-width", 2)
+        .style("opacity", 0.6);
+
+
+        const actualLine = d3.line().x(d => xScale(d.year)).y(d => yScale(d.capacity));
+
+
+
+        const avgSceneData = avgData.filter(d => d.year >= yearStart && d.year <= yearEnd);
+
+       
+        
+        
+        
+        const path = actualPath.datum(cumulativeData).attr("d", actualLine);
+        const totalLength = path.node().getTotalLength();
+
+        const annotations = [{
+          note: { title: annotation, label: description, wrap: 200 },
+          x: width / 2, y: 50, dy: 15, dx: 0
+        }];
+
+        const makeAnnotations = d3.annotation().type(d3.annotationLabel).annotations(annotations);
+        annotationGroup.call(makeAnnotations);
+        const { comment } = scenes[index];
+        const navContainer = d3.select("#timeNav");
+        navContainer.selectAll("button")
+          .data(scenes)
+          .enter()
+          .append("button")
+          .attr("class", "time-btn")
+          .text(d => `${d.yearStart}–${d.yearEnd}`)
+          .on("click", (event, d, i) => {
+            currentScene = scenes.indexOf(d);
+            showScene(currentScene);
+          });
+
+        // Remove previous expert comment (if any)
+        annotationGroup.selectAll(".expert-comment").remove();
+
+        // Reset toggle button each slide
+        d3.select("#toggleComment").text("💬 Show Expert Comment");
+
+        // Toggle logic
+        d3.select("#toggleComment").on("click", () => {
+          const isVisible = !annotationGroup.selectAll(".expert-comment").empty();
+          if (!isVisible) {
+        const fixedWidth = 260; // fixed width for wrapping
+        const padding = 10;
+
+        // Create a group
+        const commentGroup = annotationGroup.append("g")
+          .attr("class", "expert-comment")
+          .attr("transform", `translate(${width - fixedWidth - 500}, ${height - 350})`);
+
+
+        // Append text first (empty for now)
+        const textEl = commentGroup.append("text")
+          .attr("x", padding)
+          .attr("y", padding + 15)
+          .attr("fill", "black")
+          .attr("font-size", "13px")
+          .attr("font-style", "italic")
+          .text(scenes[index].expertComment || "No expert comment available.");
+
+        // Apply wrapping (this creates tspans)
+        wrapText(textEl, fixedWidth - 2 * padding);
+
+        // Now measure after wrapping
+        const bbox = textEl.node().getBBox();
+
+        // Insert rectangle behind the text
+        commentGroup.insert("rect", "text")
+          .attr("width", fixedWidth)
+          .attr("height", bbox.height + padding)
+          .attr("fill", "#fff8dc")
+          .attr("stroke", "#999")
+          .attr("rx", 8)
+          .attr("ry", 8)
+          .attr("x", 0)
+          .attr("y", bbox.y - padding/2);
+        
+        d3.select("#toggleComment").text("✖ Hide Expert Comment");
+      }
+      
+
+
+          
+        });
+
+        // Wrap helper
+        function wrapText(textEl, width) {
+        textEl.each(function() {
+          const text = d3.select(this);
+          const words = text.text().split(/\s+/).reverse();
+          let line = [];
+          let lineNumber = 0;
+          const lineHeight = 1.4; // ems
+          const y = text.attr("y");
+          const x = text.attr("x");
+
+          let tspan = text.text(null)
+            .append("tspan")
+            .attr("x", x)
+            .attr("y", y);
+
+          let word;
+          while ((word = words.pop())) {
+            line.push(word);
+            tspan.text(line.join(" "));
+            if (tspan.node().getComputedTextLength() > width) {
+              line.pop();
+              tspan.text(line.join(" "));
+              line = [word];
+              tspan = text.append("tspan")
+                .attr("x", x)
+                .attr("y", y)
+                .attr("dy", ++lineNumber * lineHeight + "em")
+                .text(word);
+            }
+          }
+        });
+      }
+
+
+
+
+        path.attr("stroke-dasharray", totalLength + " " + totalLength)
+          .attr("stroke-dashoffset", totalLength)
+          .transition()
+          .duration(2500)
+          .ease(d3.easeLinear)
+          .attr("stroke-dashoffset", 0)
+          .on("end", () => {
+            const overData = cumulativeData.filter(d => {
+              const goalCap = goalAtYear(d.year);
+              return goalCap !== null && d.capacity > goalCap;
+            });
+
+            if (overData.length > 0) {
+              chartGroup.append("path")
+                .datum(overData)
+                .attr("class", "overachievement")
+                .attr("fill", "green")
+                .attr("opacity", 0)
+                .attr("d", d3.area()
+                  .x(d => xScale(d.year))
+                  .y0(d => yScale(goalAtYear(d.year)))
+                  .y1(d => yScale(d.capacity)))
+                .transition()
+                .duration(1200)
+                .attr("opacity", 0.3);
+            }
+
+            if (startData) {
+              annotationGroup.append("circle")
+                .attr("cx", xScale(startData.year))
+                .attr("cy", yScale(startData.capacity))
+                .attr("r", 10)
+                .attr("fill", "orange");
+            }
+            if (endData) {
+              annotationGroup.append("circle")
+                .attr("cx", xScale(endData.year))
+                .attr("cy", yScale(endData.capacity))
+                .attr("r", 10)
+                .attr("fill", "green");
+            }
+           if (growthRate !== null) {
+              annotationGroup.selectAll(".growth-rate").remove();
+
+              const annotation = annotationGroup.append("g")
+                .attr("class", "growth-rate")
+                .attr("transform", `translate(${width - 260}, ${height - 60})`); 
+                // adjust translate to move the whole box
+
+              // Background rect
+              annotation.append("rect")
+                .attr("width", 240)
+                .attr("height", 40)
+                .attr("fill", "lightgreen")
+                .attr("rx", 6)
+                .attr("ry", 6)
+                .attr("opacity", 0.7);
+
+              // Centered text inside the rect
+              annotation.append("text")
+                .attr("x", 120)  // half the rect width
+                .attr("y", 25)   // roughly vertically centered
+                .attr("text-anchor", "middle")
+                .attr("fill", "black")
+                .attr("font-size", "14px")
+                .attr("font-weight", "bold")
+                .text(`Growth rate of the period: +${growthRate.toFixed(1)}%`);
+            }
+
+
+
+            chartGroup.selectAll("circle.data-point")
+              .data(cumulativeData)
+              .join("circle")
+              .attr("class", "data-point")
+              .attr("cx", d => xScale(d.year))
+              .attr("cy", d => yScale(d.capacity))
+              .attr("r", 5)
+              .attr("fill", "steelblue")
+              .attr("opacity", 0.7)
+              .on("click", (event, d) => {
+                const newTooltip = d3.select("body")
+                  .append("div")
+                  .attr("class", "pinned-tooltip")
+                  .style("left", event.pageX + 10 + "px")
+                  .style("top", event.pageY - 28 + "px")
+                  .html(`<strong>${d.year}</strong>: ${d3.format(",")(d.capacity)} kW 
+                         <br><button class="close-btn">📍</button>`);
+
+                newTooltip.select(".close-btn").on("click", () => newTooltip.remove());
+              });
+          });
+      }
+
+      //  initialize the chart
+      showScene(currentScene);
+
+      //  navigation
+      document.getElementById("nextBtn").addEventListener("click", () => {
+        if (currentScene < scenes.length - 1) currentScene++;
+        showScene(currentScene);
+      });
+      document.getElementById("prevBtn").addEventListener("click", () => {
+        if (currentScene > 0) currentScene--;
+        showScene(currentScene);
+      });
+
+    });
+  </script>
+
+  <div id="tooltip" style="
+    position: absolute;
+    padding: 6px 12px;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    pointer-events: none;
+    opacity: 0;
+    font-size: 14px;
+  "></div>
+</body>
+</html>
