@@ -4,7 +4,7 @@ This project is a **narrative visualization** built with [D3.js](https://d3js.or
 
 ## Live Demo
 You can view the interactive visualization here:  
-[https://ysc06.github.io/NJ-Solar-Story]
+[https://github.com/ysc06/NJ_solar_journey.git]
 
 
 ---
