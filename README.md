@@ -38,7 +38,7 @@ The visualization uses:
 - **D3.js v7** – Main visualization library.
 - **d3-annotation** – For annotation templates.
 - **HTML/CSS/JavaScript** – Page structure and styling.
-- **GitHub Pages** – Hosting platform.
+
 
 ---
 
