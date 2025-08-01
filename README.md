@@ -1,15 +1,15 @@
-# New Jersey Solar Story# 🌞
+# New Jersey Solar Story # 🌞
 
 This project is a **narrative visualization** built with [D3.js](https://d3js.org/) that tells the story of **New Jersey’s solar energy journey** from 2000 to 2035. It highlights key policy shifts, installation trends, and ambitious future goals, combining guided storytelling with interactive exploration.
 
-## 🌍 Live Demo
+## Live Demo
 You can view the interactive visualization here:  
-[https://YOUR_USERNAME.github.io/NJ-Solar-Story](https://YOUR_USERNAME.github.io/NJ-Solar-Story)  
-*(Replace `YOUR_USERNAME` with your GitHub username.)*
+[https://ysc06.github.io/NJ-Solar-Story]
+
 
 ---
 
-## 📌 Features
+## Features
 - **Interactive Slideshow Structure**
   - Navigate with **Next/Previous** buttons.
   - Jump to specific periods via **timeline buttons**.
@@ -35,7 +35,7 @@ The visualization uses:
 
 ---
 
-## 🛠️ Technologies Used
+## Technologies Used
 - **D3.js v7** – Main visualization library.
 - **d3-annotation** – For annotation templates.
 - **HTML/CSS/JavaScript** – Page structure and styling.
