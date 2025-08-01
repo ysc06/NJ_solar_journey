@@ -1,4 +1,4 @@
-# New Jersey Solar Story # 🌞
+# New Jersey Solar Story  🌞
 
 This project is a **narrative visualization** built with [D3.js](https://d3js.org/) that tells the story of **New Jersey’s solar energy journey** from 2000 to 2035. It highlights key policy shifts, installation trends, and ambitious future goals, combining guided storytelling with interactive exploration.
 
