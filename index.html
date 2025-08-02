@@ -14,7 +14,36 @@
       width: 900px;
       height: 500px;
     }
-    #nav {
+    #timeNav {
+      display: flex;
+      justify-content: center; /* centers under chart */
+      flex-wrap: wrap;         /* wraps if too many */
+      gap: 14px;               /* spacing between buttons */
+      margin-top: 20px;
+    }
+
+    #timeNav .time-btn {
+      padding: 8px 16px;
+      font-size: 14px;
+      background: #f0f0f0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    #timeNav .time-btn:hover {
+      background: #ddd;
+    }
+
+    #timeNav .time-btn.active {
+      background: steelblue;
+      color: white;
+      border-color: steelblue;
+      transform: scale(1.08); /* subtle pop effect */
+    }
+
+    /* #nav {
       margin-top: 10px;
       margin-bottom: 20px;
     }
@@ -30,8 +59,8 @@
       transition: background 0.2s ease-in-out;
     }
     #nav button:hover {
-      background: #1f5f9c;
-    }
+      background: #1f5f9c; */
+    
     #sceneDescription {
       max-width: 800px;
       font-size: 16px;
@@ -55,7 +84,30 @@
       color: white;
       border: none;
       border-radius: 4px;
+      gap: 12px;
     }
+    #timelineNav button {
+      padding: 8px 16px;
+      font-size: 14px;
+      background: #f0f0f0;
+      color: #333;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease-in-out;
+    }
+
+    #timelineNav button:hover {
+      background: #ddd;
+    }
+
+    #timelineNav button.active {
+      background: steelblue;
+      color: white;
+      border-color: steelblue;
+      transform: scale(1.05); /* small highlight effect */
+    }
+
     .overachievement {
       cursor: pointer;
     }
@@ -446,16 +498,29 @@
         annotationGroup.call(makeAnnotations);
         const { comment } = scenes[index];
         const navContainer = d3.select("#timeNav");
-        navContainer.selectAll("button")
+        const buttons = navContainer.selectAll("button")
           .data(scenes)
-          .enter()
-          .append("button")
+          .join("button") // ensures we don’t keep adding duplicates
           .attr("class", "time-btn")
           .text(d => `${d.yearStart}–${d.yearEnd}`)
-          .on("click", (event, d, i) => {
+          .on("click", (event, d) => {
             currentScene = scenes.indexOf(d);
             showScene(currentScene);
           });
+
+        // highlight active button
+        buttons.classed("active", (d, i) => i === currentScene);
+
+        // navContainer.selectAll("button")
+        //   .data(scenes)
+        //   .enter()
+        //   .append("button")
+        //   .attr("class", "time-btn")
+        //   .text(d => `${d.yearStart}–${d.yearEnd}`)
+        //   .on("click", (event, d, i) => {
+        //     currentScene = scenes.indexOf(d);
+        //     showScene(currentScene);
+        //   });
 
         // Remove previous expert comment (if any)
         annotationGroup.selectAll(".expert-comment").remove();
@@ -503,6 +568,9 @@
           .attr("y", bbox.y - padding/2);
         
         d3.select("#toggleComment").text("✖ Hide Expert Comment");
+        }else{
+          annotationGroup.selectAll(".expert-comment").remove();
+          d3.select("#toggleComment").text("💬 Show Expert Comment")
       }
       
 
@@ -617,7 +685,7 @@
             }
 
 
-
+            const pinnedTooltips = new Map();
             chartGroup.selectAll("circle.data-point")
               .data(cumulativeData)
               .join("circle")
@@ -628,15 +696,55 @@
               .attr("fill", "steelblue")
               .attr("opacity", 0.7)
               .on("click", (event, d) => {
+                if (pinnedTooltips.has(d.year)) {
+
+                  pinnedTooptips.get(d.year).remove();
+                  pinnedTooltips.delete(d.year);
+                }else{
+                    // Convert SVG coords to screen coords
+                const svgNode = svg.node();
+                const point = svgNode.createSVGPoint();
+                point.x = xScale(d.year) + margin.left;
+                point.y = yScale(d.capacity) + margin.top;
+                const screenCTM = svgNode.getScreenCTM();
+                const coords = point.matrixTransform(screenCTM);
+
+                // Create tooltip slightly above circle
+                const offsetY = -40; // move 40px above point
                 const newTooltip = d3.select("body")
                   .append("div")
                   .attr("class", "pinned-tooltip")
-                  .style("left", event.pageX + 10 + "px")
-                  .style("top", event.pageY - 28 + "px")
+                  .style("position", "absolute")
+                  .style("left", `${coords.x - 40}px`) // center horizontally
+                  .style("top", `${coords.y + offsetY}px`) // above the point
+                  .style("background", "white")
+                  .style("border", "1px solid #ccc")
+                  .style("border-radius", "4px")
+                  .style("padding", "6px 12px")
+                  .style("font-size", "14px")
+                  .style("box-shadow", "0px 2px 6px rgba(0,0,0,0.2)")
                   .html(`<strong>${d.year}</strong>: ${d3.format(",")(d.capacity)} kW 
-                         <br><button class="close-btn">📍</button>`);
+                        <br><button class="close-btn">✖</button>`);
 
-                newTooltip.select(".close-btn").on("click", () => newTooltip.remove());
+                // Close button logic
+                newTooltip.select(".close-btn").on("click", () => {
+                  newTooltip.remove();
+                  pinnedTooltips.delete(d.year);
+                });
+
+                pinnedTooltips.set(d.year, newTooltip);
+
+                }
+                
+                // const newTooltip = d3.select("body")
+                //   .append("div")
+                //   .attr("class", "pinned-tooltip")
+                //   .style("left", event.pageX + 10 + "px")
+                //   .style("top", event.pageY - 28 + "px")
+                //   .html(`<strong>${d.year}</strong>: ${d3.format(",")(d.capacity)} kW 
+                //          <br><button class="close-btn">📍</button>`);
+
+                // newTooltip.select(".close-btn").on("click", () => newTooltip.remove());
               });
           });
       }
